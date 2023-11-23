@@ -1,160 +1,150 @@
-import React, {useEffect, useState} from "react";
+import React, { useState } from "react";
 import {
-    Box,
-    Button,
-    Flex,
-    Input,
-    InputGroup,
-    Modal,
-    ModalBody,
-    ModalCloseButton,
-    ModalContent,
-    ModalFooter,
-    ModalHeader,
-    ModalOverlay,
-    Stack,
-    Text,
-    useDisclosure
+  Box,
+  Button,
+  Flex,
+  Input,
+  InputGroup,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  Stack,
+  Text,
+  useDisclosure,
 } from "@chakra-ui/react";
 
-const TodosContext = React.createContext({
-  todos: [], fetchTodos: () => {}
-})
+function AddTodo({ onAdd }) {
+  const [item, setItem] = useState("");
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
-function AddTodo() {
-  const [item, setItem] = React.useState("")
-  const {todos, fetchTodos} = React.useContext(TodosContext)
+  const handleInput = (event) => {
+    setItem(event.target.value);
+  };
 
-  const handleInput = event  => {
-    setItem(event.target.value)
-  }
-
-  const handleSubmit = (event) => {
-    const newTodo = {
-      "id": todos.length + 1,
-      "item": item
+  const handleSubmit = () => {
+    if (item.trim()) {
+      onAdd(item);
+      onClose();
+      setItem("");
     }
-
-    fetch("http://localhost:8000/todo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newTodo)
-    }).then(fetchTodos)
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <InputGroup size="md">
-        <Input
-          pr="4.5rem"
-          type="text"
-          placeholder="Atividade"
-          aria-label="A Fazer"
-          onChange={handleInput}
-        />
-      </InputGroup>
-    </form>
-  )
-}
-
-function UpdateTodo({item, id}) {
-  const {isOpen, onOpen, onClose} = useDisclosure()
-  const [todo, setTodo] = useState(item)
-  const {fetchTodos} = React.useContext(TodosContext)
-
-  const updateTodo = async () => {
-    await fetch(`http://localhost:8000/todo/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ item: todo })
-    })
-    onClose()
-    await fetchTodos()
-  }
+  };
 
   return (
     <>
-      <Button h="1.5rem" size="sm" onClick={onOpen}>Update Todo</Button>
+      <Button onClick={onOpen}>Adicionar Tarefa</Button>
       <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay/>
+        <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Update Todo</ModalHeader>
-          <ModalCloseButton/>
+          <ModalHeader>Adicionar Tarefa</ModalHeader>
+          <ModalCloseButton />
           <ModalBody>
             <InputGroup size="md">
               <Input
                 pr="4.5rem"
                 type="text"
-                placeholder="Add a todo item"
-                aria-label="Add a todo item"
-                value={todo}
-                onChange={e => setTodo(e.target.value)}
+                placeholder="Atividade"
+                aria-label="A Fazer"
+                value={item}
+                onChange={handleInput}
               />
             </InputGroup>
           </ModalBody>
 
           <ModalFooter>
-            <Button h="1.5rem" size="sm" onClick={updateTodo}>Update Todo</Button>
+            <Button onClick={handleSubmit}>Adicionar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
     </>
-  )
+  );
 }
 
-function DeleteTodo({id}) {
-  const {fetchTodos} = React.useContext(TodosContext)
+function TodoHelper({ item, onDelete, onUpdate }) {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const [updatedItem, setUpdatedItem] = useState(item);
 
-  const deleteTodo = async () => {
-    await fetch(`http://localhost:8000/todo/${id}`, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: { "id": id }
-    })
-    await fetchTodos()
-  }
+  const handleUpdate = () => {
+    if (updatedItem.trim()) {
+      onUpdate(updatedItem);
+      onClose();
+    }
+  };
 
   return (
-    <Button h="1.5rem" size="sm" onClick={deleteTodo}>Delete Todo</Button>
-  )
-}
-
-function TodoHelper({item, id, fetchTodos}) {
-  return (
-    <Box p={1} shadow="sm">
+    <Box p={4} shadow="md" borderWidth="1px">
       <Flex justify="space-between">
-        <Text mt={4} as="div">
-          {item}
-          <Flex align="end">
-            <UpdateTodo item={item} id={id} fetchTodos={fetchTodos}/>
-            <DeleteTodo id={id} fetchTodos={fetchTodos}/>
-          </Flex>
-        </Text>
+        <Text fontWeight="semibold">{item}</Text>
+        <Flex>
+          <Button onClick={onOpen} mr={2}>
+            Atualizar
+          </Button>
+          <Button colorScheme="red" onClick={onDelete}>
+            Excluir
+          </Button>
+        </Flex>
       </Flex>
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Atualizar Tarefa</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <InputGroup size="md">
+              <Input
+                pr="4.5rem"
+                type="text"
+                placeholder="Atualizar tarefa"
+                aria-label="Atualizar tarefa"
+                value={updatedItem}
+                onChange={(e) => setUpdatedItem(e.target.value)}
+              />
+            </InputGroup>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button onClick={handleUpdate}>Atualizar</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
-  )
+  );
 }
 
 export default function Todos() {
-  const [todos, setTodos] = useState([])
-  const fetchTodos = async () => {
-    const response = await fetch("http://localhost:8000/todo")
-    const todos = await response.json()
-    setTodos(todos.data)
-  }
-  useEffect(() => {
-    fetchTodos()
-  }, [])
+  const [todos, setTodos] = useState([]);
+
+  const handleAdd = (newItem) => {
+    setTodos([...todos, newItem]);
+  };
+
+  const handleUpdate = (updatedItem) => {
+    // Lógica para atualizar a tarefa na lista
+    console.log("Tarefa atualizada:", updatedItem);
+  };
+
+  const handleDelete = (index) => {
+    // Lógica para excluir a tarefa da lista
+    const updatedTodos = todos.filter((_, i) => i !== index);
+    setTodos(updatedTodos);
+  };
+
   return (
-    <TodosContext.Provider value={{todos, fetchTodos}}>
-      <AddTodo />
-      <Stack spacing={5}>
-        {
-          todos.map((todo) => (
-            <TodoHelper item={todo.item} id={todo.id} fetchTodos={fetchTodos} />
-          ))
-        }
+    <>
+      <AddTodo onAdd={handleAdd} />
+      <Stack spacing={4}>
+        {todos.map((todo, index) => (
+          <TodoHelper
+            key={index}
+            item={todo}
+            onDelete={() => handleDelete(index)}
+            onUpdate={handleUpdate}
+          />
+        ))}
       </Stack>
-    </TodosContext.Provider>
-  )
+    </>
+  );
 }

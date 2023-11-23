@@ -68,4 +68,5 @@ const GraficoHertz = () => {
   );
 };
 
+
 export default GraficoHertz;
